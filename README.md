@@ -1,89 +1,84 @@
-# mpv-gotime
+# GoTime Video — Obsidian Plugin
 
-Open and seek videos with mpv, copy timestamp links for Obsidian.
+Open video files at specific timestamps directly from your Obsidian notes using [mpv](https://mpv.io/).
+
+> ⚠️ **Currently Linux-only.** Contributions for Windows and macOS support are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Features
 
-- **`gotime` command**: Open a video at a specific timestamp, or seek if already open
-- **Timestamp links**: Press `Ctrl+C` in mpv to copy a markdown link to clipboard
-- **Multiple windows**: Each video gets its own IPC socket for independent control
-- **Background mode**: New windows fork to background, command returns immediately
+- Click `file://` links pointing to video files to open them in mpv
+- Supports timestamp fragments (`#t=90.00`) to seek to a specific time
+- If the video is already open, seeks instead of opening a new window
+- Automatically detects video files: `.mp4`, `.mov`, `.mkv`, `.avi`, `.webm`, `.flv`, `.wmv`, `.m4v`
+- Opens at 0:00 if no timestamp is specified
+- Configurable path to the `gotime` executable
+
+## Prerequisites
+
+1. **[mpv](https://mpv.io/)** media player installed
+2. **[mpv-gotime](https://github.com/wpregliasco/mpv-gotime)** CLI tool installed:
+   ```bash
+   uv tool install /path/to/mpv_gotime
+   ```
+3. **Non-Flatpak Obsidian** — Flatpak sandboxing prevents launching GUI applications. Use the AppImage or native package instead.
 
 ## Installation
 
-```bash
-# Clone the repository
-git clone https://gitlab.com/your-username/mpv-gotime.git
-cd mpv-gotime
+1. Clone this repository into your vault's plugin folder:
+   ```bash
+   cd /path/to/vault/.obsidian/plugins
+   git clone https://github.com/wpregliasco/obsidian-gotime-plugin.git gotime-video
+   cd gotime-video
+   npm install
+   npm run build
+   ```
 
-# Install with uv
-uv sync
+2. In Obsidian: **Settings → Community Plugins → Enable "GoTime Video"**
+
+### Alternative: symlink
+
+```bash
+git clone https://github.com/wpregliasco/obsidian-gotime-plugin.git
+cd obsidian-gotime-plugin
+npm install && npm run build
+ln -s "$(pwd)" /path/to/vault/.obsidian/plugins/gotime-video
 ```
 
 ## Usage
 
-### Open or seek a video
+Create timestamp links in your notes:
 
-```bash
-# Open video at the beginning
-gotime /path/to/video.mp4
-
-# Open video at a specific time (seconds)
-gotime /path/to/video.mp4 90
-
-# Open video at a specific time (HH:MM:SS format)
-gotime /path/to/video.mp4 01:30:00
-
-# If video is already open, seeks to the time instead
-gotime /path/to/video.mp4 00:05:30
+```markdown
+[Video @ 00:01:30](file:///home/user/Videos/video.mp4#t=90.00)
+[My Clip](file:///home/user/Videos/clip.mov)
 ```
 
-### Copy timestamp links
+Click the link in reading mode to open the video in mpv.
 
-While watching a video in mpv:
+### Generating links from mpv
 
-1. Press `Ctrl+C` at any point
-2. A markdown link is copied to clipboard:
-   ```
-   [VideoName @ 00:01:30.500](file:///path/to/video.mp4#t=90.50)
-   ```
-3. Paste in Obsidian - clicking the link will open/seek the video
+The [mpv-gotime](https://github.com/wpregliasco/mpv-gotime) CLI provides keyboard shortcuts while watching a video:
 
-## Help
+| Shortcut | Clipboard format |
+|----------|-----------------|
+| `Ctrl+C` | `[HH:MM:SS](file:///path/to/video.mp4#t=90.00)` |
+| `Ctrl+T` | `HH:MM:SS` (plain text) |
+| `Ctrl+F` | `[VideoName](file:///path/to/video.mp4)` |
+| `Ctrl+L` | `[VideoName @ HH:MM:SS](file:///path/to/video.mp4#t=90.00)` |
 
-```bash
-gotime --help
-```
+Paste the copied link into your Obsidian note.
 
-```
-Usage: gotime [OPTIONS] FILE [TIME]
+## Settings
 
-  Open or seek to a time in a video file. If already open, seeks to time.
+- **GoTime command path**: Path to the `gotime` executable. Default: `gotime`. Use a full path if it's not in your PATH.
 
-Arguments:
-  FILE   Path to the video file  [required]
-  TIME   Time position (seconds or HH:MM:SS)  [default: 0]
+## Contributing
 
-Options:
-  --help  Show this message and exit.
-```
-
-## Requirements
-
-- Python 3.12+
-- [mpv](https://mpv.io/) media player
-- [python-mpv-jsonipc](https://pypi.org/project/python-mpv-jsonipc/)
-
-## How it works
-
-1. Each video file gets a deterministic IPC socket path (Base64-encoded filename)
-2. `gotime` checks if the socket exists and mpv is responding
-3. If open: sends seek command via IPC
-4. If not open: forks to background, opens mpv with the socket, waits for window close
+See [CONTRIBUTING.md](CONTRIBUTING.md) — help with **Windows** and **macOS** support is especially welcome!
 
 ## Related
 
-- **obsidian-gotime-plugin**: Obsidian plugin to handle timestamp link clicks - intercepts `file://...#t=` links and opens videos with gotime
+- **[mpv-gotime](https://github.com/wpregliasco/mpv-gotime)** — The CLI tool that powers this plugin
 
 ## License
 

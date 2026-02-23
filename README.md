@@ -16,7 +16,7 @@ Open video files at specific timestamps directly from your Obsidian notes using 
 ## Prerequisites
 
 1. **[mpv](https://mpv.io/)** media player installed
-2. **[mpv-gotime]https://gitlab.com/obsidian_utils/gotime)** CLI tool installed:
+2. **[mpv-gotime](https://gitlab.com/obsidian_utils/gotime)** CLI tool installed:
    ```bash
    uv tool install /path/to/mpv_gotime
    ```

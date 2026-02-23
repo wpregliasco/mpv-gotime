@@ -16,7 +16,7 @@ Open video files at specific timestamps directly from your Obsidian notes using 
 ## Prerequisites
 
 1. **[mpv](https://mpv.io/)** media player installed
-2. **[mpv-gotime](https://github.com/wpregliasco/mpv-gotime)** CLI tool installed:
+2. **[mpv-gotime]https://gitlab.com/obsidian_utils/gotime)** CLI tool installed:
    ```bash
    uv tool install /path/to/mpv_gotime
    ```
@@ -57,7 +57,7 @@ Click the link in reading mode to open the video in mpv.
 
 ### Generating links from mpv
 
-The [mpv-gotime](https://github.com/wpregliasco/mpv-gotime) CLI provides keyboard shortcuts while watching a video:
+The [mpv-gotime](https://gitlab.com/obsidian_utils/obsidian-gotime) CLI provides keyboard shortcuts while watching a video:
 
 | Shortcut | Clipboard format |
 |----------|-----------------|
@@ -78,7 +78,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) — help with **Windows** and **macOS** s
 
 ## Related
 
-- **[mpv-gotime](https://github.com/wpregliasco/mpv-gotime)** — The CLI tool that powers this plugin
+- **[mpv-gotime](https://gitlab.com/obsidian_utils/gotime)** — The CLI tool that powers this plugin
 
 ## License
 

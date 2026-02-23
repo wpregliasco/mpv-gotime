@@ -2,6 +2,9 @@
 	"id": "gotime-video",
     "name": "GoTime Video (Linux version)",
     "author": "Willy Pregliasco",
+	"version": "1.0.0",
+	"minAppVersion": "1.0.0",
+	"isDesktopOnly": true,
     "description": "Annotate videos with responsive md links to timestamps.",
     "repo": "wpregliasco/mpv-gotime"
 }

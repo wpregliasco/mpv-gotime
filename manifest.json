@@ -1,6 +1,6 @@
 {
 	"id": "gotime-video",
-	"name": "GoTime Video, Linux version",
+	"name": "GoTime Video, (Linux version)",
 	"version": "1.0.0",
 	"minAppVersion": "1.0.0",
 	"description": "Open video files at specific timestamps by clicking file:// links. Automatically detects video files (.mp4, .mov, .mkv, .avi, .webm, .flv, .wmv, .m4v) and opens them in mpv. Supports seeking in existing windows and defaults to 0:00 if no timestamp specified.",

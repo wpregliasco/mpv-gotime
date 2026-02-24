@@ -81,10 +81,16 @@ var GoTimePlugin = class extends import_obsidian.Plugin {
     await this.saveData(this.settings);
   }
   openWithGoTime(href) {
+    var _a;
     const url = new URL(href);
     const filePath = decodeURIComponent(url.pathname);
-    const timeFragment = url.hash.replace("#t=", "");
-    const cmd = `${this.settings.gotimePath} "${filePath}" ${timeFragment}`;
+    const fragment = url.hash.slice(1);
+    const params = new URLSearchParams(fragment);
+    const timeStr = (_a = params.get("t")) != null ? _a : "0";
+    const rect = params.get("rect");
+    let cmd = `${this.settings.gotimePath} "${filePath}" ${timeStr}`;
+    if (rect)
+      cmd += ` --rect ${rect}`;
     console.log("GoTime executing:", cmd);
     const child = (0, import_child_process.spawn)("bash", ["-c", cmd], {
       env: {

@@ -81,12 +81,18 @@ export default class GoTimePlugin extends Plugin {
 	}
 
 	openWithGoTime(href: string) {
-		// Parse file:///path/to/video.mp4#t=90.00
+		// Parse file:///path/to/video.mp4#t=90.00&rect=x,y,w,h
 		const url = new URL(href);
 		const filePath = decodeURIComponent(url.pathname);
-		const timeFragment = url.hash.replace('#t=', '');
-		
-		const cmd = `${this.settings.gotimePath} "${filePath}" ${timeFragment}`;
+
+		// Fragment is like "t=4.25&rect=485,340,80,80" (URL strips the leading #)
+		const fragment = url.hash.slice(1); // remove leading '#'
+		const params = new URLSearchParams(fragment);
+		const timeStr = params.get('t') ?? '0';
+		const rect = params.get('rect');
+
+		let cmd = `${this.settings.gotimePath} "${filePath}" ${timeStr}`;
+		if (rect) cmd += ` --rect ${rect}`;
 		console.log('GoTime executing:', cmd);
 		
 		const child = spawn('bash', ['-c', cmd], {

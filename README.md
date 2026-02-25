@@ -7,7 +7,9 @@ Open video files at specific timestamps directly from your Obsidian notes using 
 ## Features
 
 - Click `file://` links pointing to video files to open them in mpv
+- **Portable paths**: Supports `file://~/relative/path` links that resolve via `EVIDENCE_PATHS` — same notes work across machines
 - Supports timestamp fragments (`#t=90.00`) to seek to a specific time
+- Supports rectangle coordinates (`&rect=x,y,w,h`) for region selection
 - If the video is already open, seeks instead of opening a new window
 - Automatically detects video files: `.mp4`, `.mov`, `.mkv`, `.avi`, `.webm`, `.flv`, `.wmv`, `.m4v`
 - Opens at 0:00 if no timestamp is specified
@@ -49,8 +51,13 @@ ln -s "$(pwd)" /path/to/vault/.obsidian/plugins/gotime-video
 Create timestamp links in your notes:
 
 ```markdown
+# Absolute paths (work on the machine where they were created)
 [Video @ 00:01:30](file:///home/user/Videos/video.mp4#t=90.00)
 [My Clip](file:///home/user/Videos/clip.mov)
+
+# Portable paths (work across machines with EVIDENCE_PATHS configured)
+[Video @ 00:01:30](file://~/video.mp4#t=90.00)
+[My Clip @ 00:05:00](file://~/subdir/clip.mov#t=300.00&rect=100,200,50,50)
 ```
 
 Click the link in reading mode to open the video in mpv.
@@ -60,17 +67,34 @@ Click the link in reading mode to open the video in mpv.
 The [mpv-gotime](https://gitlab.com/obsidian_utils/obsidian-gotime) CLI provides keyboard shortcuts while watching a video:
 
 | Shortcut | Clipboard format |
-|----------|-----------------|
-| `Ctrl+C` | `[HH:MM:SS](file:///path/to/video.mp4#t=90.00)` |
+|----------|------------------|
+| `Ctrl+C` | `[HH:MM:SS](file://~/video.mp4#t=90.00)` |
 | `Ctrl+T` | `HH:MM:SS` (plain text) |
-| `Ctrl+F` | `[VideoName](file:///path/to/video.mp4)` |
-| `Ctrl+L` | `[VideoName @ HH:MM:SS](file:///path/to/video.mp4#t=90.00)` |
+| `Ctrl+F` | `[VideoName](file://~/video.mp4)` |
+| `Ctrl+L` | `[VideoName @ HH:MM:SS](file://~/video.mp4#t=90.00)` |
+
+When `EVIDENCE_PATHS` is set, links use portable `file://~/` format. Otherwise, absolute paths are used.
 
 Paste the copied link into your Obsidian note.
 
 ## Settings
 
 - **GoTime command path**: Path to the `gotime` executable. Default: `gotime`. Use a full path if it's not in your PATH.
+- **Evidence base path**: Base directory for resolving portable `file://~/` links. Required for portable paths to work.
+
+### Setting up portable paths
+
+Portable paths allow the same Obsidian notes to work across different machines where video files live in different root directories.
+
+1. Ensure `EVIDENCE_PATHS` is set in your shell (typically configured by `evidence-setup`):
+   ```bash
+   echo $EVIDENCE_PATHS
+   # e.g. /home/user/Videos
+   ```
+2. Copy that value into the plugin setting: **Settings → GoTime Video → Evidence base path**
+3. Links using `file://~/relative/path` will resolve to `$EVIDENCE_PATHS/relative/path`
+
+Each machine only needs its own local path configured — the links in your notes stay the same.
 
 ## Contributing
 

@@ -82,11 +82,27 @@ export default class GoTimePlugin extends Plugin {
 
 	openWithGoTime(href: string) {
 		// Parse file:///path/to/video.mp4#t=90.00&rect=x,y,w,h
-		const url = new URL(href);
-		const filePath = decodeURIComponent(url.pathname);
+		// or portable: file://~/relative/path.mp4#t=90.00&rect=x,y,w,h
+		let filePath: string;
+		let fragment: string;
 
-		// Fragment is like "t=4.25&rect=485,340,80,80" (URL strips the leading #)
-		const fragment = url.hash.slice(1); // remove leading '#'
+		if (href.startsWith('file://~/')) {
+			// Portable path: URL parser mangles ~ as hostname, extract manually
+			const withoutScheme = href.slice('file://'.length); // ~/relative/path.mp4#t=...
+			const hashIdx = withoutScheme.indexOf('#');
+			if (hashIdx >= 0) {
+				filePath = decodeURIComponent(withoutScheme.slice(0, hashIdx));
+				fragment = withoutScheme.slice(hashIdx + 1);
+			} else {
+				filePath = decodeURIComponent(withoutScheme);
+				fragment = '';
+			}
+		} else {
+			const url = new URL(href);
+			filePath = decodeURIComponent(url.pathname);
+			fragment = url.hash.slice(1); // remove leading '#'
+		}
+
 		const params = new URLSearchParams(fragment);
 		const timeStr = params.get('t') ?? '0';
 		const rect = params.get('rect');

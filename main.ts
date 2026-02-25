@@ -3,10 +3,12 @@ import { spawn } from 'child_process';
 
 interface GoTimeSettings {
 	gotimePath: string;
+	evidencePaths: string;
 }
 
 const DEFAULT_SETTINGS: GoTimeSettings = {
-	gotimePath: 'gotime'
+	gotimePath: 'gotime',
+	evidencePaths: ''
 };
 
 export default class GoTimePlugin extends Plugin {
@@ -88,7 +90,8 @@ export default class GoTimePlugin extends Plugin {
 
 		if (href.startsWith('file://~/')) {
 			// Portable path: URL parser mangles ~ as hostname, extract manually
-			const withoutScheme = href.slice('file://'.length); // ~/relative/path.mp4#t=...
+			// Keep leading / so gotime receives /~/path which it knows how to resolve
+			const withoutScheme = '/' + href.slice('file://'.length); // /~/relative/path.mp4#t=...
 			const hashIdx = withoutScheme.indexOf('#');
 			if (hashIdx >= 0) {
 				filePath = decodeURIComponent(withoutScheme.slice(0, hashIdx));
@@ -118,7 +121,8 @@ export default class GoTimePlugin extends Plugin {
 				DISPLAY: process.env.DISPLAY || ':0',
 				XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR || '/run/user/1000',
 				HOME: process.env.HOME,
-				USER: process.env.USER
+				USER: process.env.USER,
+				EVIDENCE_PATHS: this.settings.evidencePaths || process.env.EVIDENCE_PATHS || ''
 			},
 			detached: true,
 			stdio: 'ignore'
@@ -158,6 +162,17 @@ class GoTimeSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.gotimePath)
 				.onChange(async (value) => {
 					this.plugin.settings.gotimePath = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(containerEl)
+			.setName('Evidence base path')
+			.setDesc('Base path for portable video links (file://~/...). Set to your local video root directory.')
+			.addText(text => text
+				.setPlaceholder('/home/user/Videos')
+				.setValue(this.plugin.settings.evidencePaths)
+				.onChange(async (value) => {
+					this.plugin.settings.evidencePaths = value;
 					await this.plugin.saveSettings();
 				}));
 	}

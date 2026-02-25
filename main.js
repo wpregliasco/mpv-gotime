@@ -25,7 +25,8 @@ module.exports = __toCommonJS(main_exports);
 var import_obsidian = require("obsidian");
 var import_child_process = require("child_process");
 var DEFAULT_SETTINGS = {
-  gotimePath: "gotime"
+  gotimePath: "gotime",
+  evidencePaths: ""
 };
 var GoTimePlugin = class extends import_obsidian.Plugin {
   async onload() {
@@ -80,7 +81,7 @@ var GoTimePlugin = class extends import_obsidian.Plugin {
     let filePath;
     let fragment;
     if (href.startsWith("file://~/")) {
-      const withoutScheme = href.slice("file://".length);
+      const withoutScheme = "/" + href.slice("file://".length);
       const hashIdx = withoutScheme.indexOf("#");
       if (hashIdx >= 0) {
         filePath = decodeURIComponent(withoutScheme.slice(0, hashIdx));
@@ -108,7 +109,8 @@ var GoTimePlugin = class extends import_obsidian.Plugin {
         DISPLAY: process.env.DISPLAY || ":0",
         XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR || "/run/user/1000",
         HOME: process.env.HOME,
-        USER: process.env.USER
+        USER: process.env.USER,
+        EVIDENCE_PATHS: this.settings.evidencePaths || process.env.EVIDENCE_PATHS || ""
       },
       detached: true,
       stdio: "ignore"
@@ -134,6 +136,10 @@ var GoTimeSettingTab = class extends import_obsidian.PluginSettingTab {
     containerEl.empty();
     new import_obsidian.Setting(containerEl).setName("GoTime command path").setDesc("Path to the gotime executable (use full path if not in PATH)").addText((text) => text.setPlaceholder("gotime").setValue(this.plugin.settings.gotimePath).onChange(async (value) => {
       this.plugin.settings.gotimePath = value;
+      await this.plugin.saveSettings();
+    }));
+    new import_obsidian.Setting(containerEl).setName("Evidence base path").setDesc("Base path for portable video links (file://~/...). Set to your local video root directory.").addText((text) => text.setPlaceholder("/home/user/Videos").setValue(this.plugin.settings.evidencePaths).onChange(async (value) => {
+      this.plugin.settings.evidencePaths = value;
       await this.plugin.saveSettings();
     }));
   }

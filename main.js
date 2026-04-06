@@ -80,14 +80,14 @@ var GoTimePlugin = class extends import_obsidian.Plugin {
     var _a;
     let filePath;
     let fragment;
-    if (href.startsWith("file://~/")) {
-      const withoutScheme = "/" + href.slice("file://".length);
-      const hashIdx = withoutScheme.indexOf("#");
+    if (href.startsWith("file:///~/") || href.startsWith("file://~/")) {
+      const raw = href.startsWith("file:///~/") ? href.slice("file://".length) : "/" + href.slice("file://".length);
+      const hashIdx = raw.indexOf("#");
       if (hashIdx >= 0) {
-        filePath = decodeURIComponent(withoutScheme.slice(0, hashIdx));
-        fragment = withoutScheme.slice(hashIdx + 1);
+        filePath = decodeURIComponent(raw.slice(0, hashIdx));
+        fragment = raw.slice(hashIdx + 1);
       } else {
-        filePath = decodeURIComponent(withoutScheme);
+        filePath = decodeURIComponent(raw);
         fragment = "";
       }
     } else {

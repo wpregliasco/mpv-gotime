@@ -88,16 +88,18 @@ export default class GoTimePlugin extends Plugin {
 		let filePath: string;
 		let fragment: string;
 
-		if (href.startsWith('file://~/')) {
+		if (href.startsWith('file:///~/') || href.startsWith('file://~/')) {
 			// Portable path: URL parser mangles ~ as hostname, extract manually
-			// Keep leading / so gotime receives /~/path which it knows how to resolve
-			const withoutScheme = '/' + href.slice('file://'.length); // /~/relative/path.mp4#t=...
-			const hashIdx = withoutScheme.indexOf('#');
+			// Normalize to /~/path regardless of whether file:///~/ or file://~/
+			const raw = href.startsWith('file:///~/') 
+				? href.slice('file://'.length)   // file:///~/... → /~/...
+				: '/' + href.slice('file://'.length); // file://~/... → /~/...
+			const hashIdx = raw.indexOf('#');
 			if (hashIdx >= 0) {
-				filePath = decodeURIComponent(withoutScheme.slice(0, hashIdx));
-				fragment = withoutScheme.slice(hashIdx + 1);
+				filePath = decodeURIComponent(raw.slice(0, hashIdx));
+				fragment = raw.slice(hashIdx + 1);
 			} else {
-				filePath = decodeURIComponent(withoutScheme);
+				filePath = decodeURIComponent(raw);
 				fragment = '';
 			}
 		} else {

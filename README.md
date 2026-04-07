@@ -62,6 +62,22 @@ Create timestamp links in your notes:
 
 Click the link in reading mode to open the video in mpv.
 
+### Opening videos from the terminal
+
+```bash
+# By file path
+gotime /path/to/video.mp4 00:01:30
+
+# By Evidence ID (requires mpvg shell function and fname utility)
+mpvg G296
+```
+
+The `mpvg` helper resolves an Evidence ID to a file path via `fname` and opens it with `gotime`. Add this to your `~/.bashrc`:
+
+```bash
+mpvg() { gotime "$(fname "$1")"; }
+```
+
 ### Generating links from mpv
 
 The [mpv-gotime](https://gitlab.com/obsidian_utils/obsidian-gotime) CLI provides keyboard shortcuts while watching a video:

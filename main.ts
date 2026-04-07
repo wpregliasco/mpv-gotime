@@ -26,6 +26,7 @@ export default class GoTimePlugin extends Plugin {
 			
 			const href = link.getAttribute('href') || link.getAttribute('data-href');
 			if (!href) return;
+			console.log('GoTime click handler href:', href);
 
 			// Check if it's a file:// link (with or without time fragment)
 			if (href.startsWith('file://')) {

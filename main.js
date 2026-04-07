@@ -39,6 +39,7 @@ var GoTimePlugin = class extends import_obsidian.Plugin {
       const href = link.getAttribute("href") || link.getAttribute("data-href");
       if (!href)
         return;
+      console.log("GoTime click handler href:", href);
       if (href.startsWith("file://")) {
         const url = new URL(href);
         const filePath = decodeURIComponent(url.pathname);

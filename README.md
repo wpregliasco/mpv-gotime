@@ -71,7 +71,8 @@ The [mpv-gotime](https://gitlab.com/obsidian_utils/obsidian-gotime) CLI provides
 | `Ctrl+C` | `[HH:MM:SS](file://~/video.mp4#t=90.00)` |
 | `Ctrl+T` | `HH:MM:SS` (plain text) |
 | `Ctrl+F` | `[VideoName](file://~/video.mp4)` |
-| `Ctrl+L` | `[VideoName @ HH:MM:SS](file://~/video.mp4#t=90.00)` |
+| `Ctrl+I` | `[G296](file://~/video.mp4)` — Evidence ID link |
+| `Ctrl+L` | `[G296 @ HH:MM:SS](file://~/video.mp4#t=90.00)` — full with ID |
 
 When `EVIDENCE_PATHS` is set, links use portable `file://~/` format. Otherwise, absolute paths are used.
 

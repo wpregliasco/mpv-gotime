@@ -94,6 +94,26 @@ When `EVIDENCE_PATHS` is set, links use portable `file://~/` format. Otherwise, 
 
 Paste the copied link into your Obsidian note.
 
+### Rectangle selection
+
+Draw a rectangle overlay on the video to mark a region of interest. Coordinates are included in copied links (`&rect=x,y,w,h`).
+
+1. **Pause** the video (`Space`)
+2. Press **`b`** to activate the rectangle (defaults to 1/3 of video size, centered)
+3. While active, arrow keys are temporarily rebound (hold for continuous movement):
+
+| Key | Action |
+|-----|--------|
+| `←` / `→` / `↑` / `↓` | Move rectangle |
+| `Shift+←` / `Shift+→` | Shrink / grow width |
+| `Shift+↑` / `Shift+↓` | Shrink / grow height |
+| `+` | Expand from center (preserves aspect ratio) |
+| `-` | Contract from center (preserves aspect ratio) |
+| `b` | Deactivate rectangle (restores arrow keys) |
+
+4. Press any copy key (`Ctrl+C/T/F/I/L`) — link will include rectangle coordinates
+5. The rectangle auto-deactivates on unpause or frame change (arrow keys restored)
+
 ## Settings
 
 - **GoTime command path**: Path to the `gotime` executable. Default: `gotime`. Use a full path if it's not in your PATH.

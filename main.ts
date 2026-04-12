@@ -28,39 +28,45 @@ export default class GoTimePlugin extends Plugin {
 			if (!href) return;
 			console.log('GoTime click handler href:', href);
 
-			// Check if it's a file:// link (with or without time fragment)
+			// Check if it's a file:// link
 			if (href.startsWith('file://')) {
-				const url = new URL(href);
-				const filePath = decodeURIComponent(url.pathname);
-				const videoExtensions = ['.mp4', '.mov', '.mkv', '.avi', '.webm', '.flv', '.wmv', '.m4v'];
+				const resolved = this.resolveFilePath(href);
+				const videoExtensions = ['.mp4', '.mov', '.mkv', '.avi', '.webm', '.flv', '.wmv', '.m4v', '.vob', '.ts', '.mts', '.mpg', '.mpeg'];
 				
-				// Only intercept video files
-				if (videoExtensions.some(ext => filePath.toLowerCase().endsWith(ext))) {
-					evt.preventDefault();
-					evt.stopPropagation();
-					
-					// If no #t= fragment, add #t=0
+				evt.preventDefault();
+				evt.stopPropagation();
+
+				if (videoExtensions.some(ext => resolved.toLowerCase().endsWith(ext))) {
+					// Video: open with gotime/mpv
 					const finalHref = href.includes('#t=') ? href : `${href}#t=0`;
 					this.openWithGoTime(finalHref);
-					return;
+				} else {
+					// Non-video: open with OS default handler
+					this.openWithDefault(resolved);
 				}
+				return;
 			}
 
-			// Also check for links that might be relative paths
-			if (!href.startsWith('http')) {
-				const fullHref = href.startsWith('file://') ? href : `file://${href}`;
-				const url = new URL(fullHref);
-				const filePath = decodeURIComponent(url.pathname);
-				const videoExtensions = ['.mp4', '.mov', '.mkv', '.avi', '.webm', '.flv', '.wmv', '.m4v'];
-				
-				// Only intercept video files
-				if (videoExtensions.some(ext => filePath.toLowerCase().endsWith(ext))) {
+			// Also check for links that might be relative file paths
+			// Skip internal Obsidian links (no extension or .md) to let Obsidian handle them
+			if (!href.startsWith('http') && !href.startsWith('#')) {
+				const dotIdx = href.lastIndexOf('.');
+				const ext = dotIdx >= 0 ? href.slice(dotIdx).toLowerCase() : '';
+				// Only intercept if it has a non-.md file extension (i.e. a real file)
+				if (ext && ext !== '.md') {
+					const fullHref = `file://${href}`;
+					const resolved = this.resolveFilePath(fullHref);
+					const videoExtensions = ['.mp4', '.mov', '.mkv', '.avi', '.webm', '.flv', '.wmv', '.m4v', '.vob', '.ts', '.mts', '.mpg', '.mpeg'];
+					
 					evt.preventDefault();
 					evt.stopPropagation();
-					
-					// If no #t= fragment, add #t=0
-					const finalHref = href.includes('#t=') ? fullHref : `${fullHref}#t=0`;
-					this.openWithGoTime(finalHref);
+
+					if (videoExtensions.some(ext => resolved.toLowerCase().endsWith(ext))) {
+						const finalHref = href.includes('#t=') ? fullHref : `${fullHref}#t=0`;
+						this.openWithGoTime(finalHref);
+					} else {
+						this.openWithDefault(resolved);
+					}
 				}
 			}
 		}, true);
@@ -81,6 +87,34 @@ export default class GoTimePlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	resolveFilePath(href: string): string {
+		// Resolve portable /~/ paths to absolute using evidencePaths setting
+		if (href.startsWith('file:///~/') || href.startsWith('file://~/')) {
+			const raw = href.startsWith('file:///~/')
+				? href.slice('file:///~/'.length)
+				: href.slice('file://~/'.length);
+			const hashIdx = raw.indexOf('#');
+			const relPath = decodeURIComponent(hashIdx >= 0 ? raw.slice(0, hashIdx) : raw);
+			const basePath = (this.settings.evidencePaths || '').replace(/\/+$/, '');
+			return `${basePath}/${relPath}`;
+		}
+		const url = new URL(href);
+		return decodeURIComponent(url.pathname);
+	}
+
+	openWithDefault(filePath: string) {
+		console.log('GoTime opening with default handler:', filePath);
+		const child = spawn('xdg-open', [filePath], {
+			detached: true,
+			stdio: 'ignore'
+		});
+		child.unref();
+		child.on('error', (error) => {
+			new Notice(`GoTime error: ${error.message}`);
+			console.error('GoTime xdg-open error:', error);
+		});
 	}
 
 	openWithGoTime(href: string) {

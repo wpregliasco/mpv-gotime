@@ -1,5 +1,9 @@
 import { App, Plugin, PluginSettingTab, Setting, Notice } from 'obsidian';
 import { spawn } from 'child_process';
+import * as path from 'path';
+
+const isWin = process.platform === 'win32';
+const isMac = process.platform === 'darwin';
 
 interface GoTimeSettings {
 	gotimePath: string;
@@ -97,23 +101,41 @@ export default class GoTimePlugin extends Plugin {
 				: href.slice('file://~/'.length);
 			const hashIdx = raw.indexOf('#');
 			const relPath = decodeURIComponent(hashIdx >= 0 ? raw.slice(0, hashIdx) : raw);
-			const basePath = (this.settings.evidencePaths || '').replace(/\/+$/, '');
-			return `${basePath}/${relPath}`;
+			const basePath = (this.settings.evidencePaths || '').replace(/[\/]+$/, '');
+			return path.join(basePath, relPath);
 		}
 		const url = new URL(href);
-		return decodeURIComponent(url.pathname);
+		let pathname = decodeURIComponent(url.pathname);
+		// On Windows, file:///D:/path gives pathname /D:/path — strip leading /
+		if (isWin && /^\/[A-Za-z]:/.test(pathname)) {
+			pathname = pathname.slice(1);
+		}
+		return pathname;
 	}
 
 	openWithDefault(filePath: string) {
 		console.log('GoTime opening with default handler:', filePath);
-		const child = spawn('xdg-open', [filePath], {
-			detached: true,
-			stdio: 'ignore'
-		});
+		let child;
+		if (isWin) {
+			child = spawn('cmd', ['/c', 'start', '', filePath], {
+				detached: true,
+				stdio: 'ignore'
+			});
+		} else if (isMac) {
+			child = spawn('open', [filePath], {
+				detached: true,
+				stdio: 'ignore'
+			});
+		} else {
+			child = spawn('xdg-open', [filePath], {
+				detached: true,
+				stdio: 'ignore'
+			});
+		}
 		child.unref();
 		child.on('error', (error) => {
 			new Notice(`GoTime error: ${error.message}`);
-			console.error('GoTime xdg-open error:', error);
+			console.error('GoTime open error:', error);
 		});
 	}
 
@@ -140,6 +162,10 @@ export default class GoTimePlugin extends Plugin {
 		} else {
 			const url = new URL(href);
 			filePath = decodeURIComponent(url.pathname);
+			// On Windows, file:///D:/path gives pathname /D:/path — strip leading /
+			if (isWin && /^\/[A-Za-z]:/.test(filePath)) {
+				filePath = filePath.slice(1);
+			}
 			fragment = url.hash.slice(1); // remove leading '#'
 		}
 
@@ -147,22 +173,32 @@ export default class GoTimePlugin extends Plugin {
 		const timeStr = params.get('t') ?? '0';
 		const rect = params.get('rect');
 
-		let cmd = `${this.settings.gotimePath} "${filePath}" ${timeStr}`;
-		if (rect) cmd += ` --rect ${rect}`;
-		console.log('GoTime executing:', cmd);
-		
-		const child = spawn('bash', ['-c', cmd], {
-			env: { 
-				...process.env, 
-				PATH: `/home/willy/.local/bin:${process.env.PATH}`,
-				DISPLAY: process.env.DISPLAY || ':0',
-				XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR || '/run/user/1000',
-				HOME: process.env.HOME,
-				USER: process.env.USER,
-				EVIDENCE_PATHS: this.settings.evidencePaths || process.env.EVIDENCE_PATHS || ''
-			},
+		const args = [filePath, timeStr];
+		if (rect) args.push('--rect', rect);
+		console.log('GoTime executing:', this.settings.gotimePath, args);
+
+		// Build platform-aware PATH with uv tool bin directory
+		const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+		const uvBin = path.join(homeDir, '.local', 'bin');
+		const pathSep = isWin ? ';' : ':';
+		const envPATH = `${uvBin}${pathSep}${process.env.PATH}`;
+
+		// Build environment — include X11 vars only on Linux
+		const env: Record<string, string> = {
+			...process.env as Record<string, string>,
+			PATH: envPATH,
+			EVIDENCE_PATHS: this.settings.evidencePaths || process.env.EVIDENCE_PATHS || ''
+		};
+		if (!isWin) {
+			env.DISPLAY = process.env.DISPLAY || ':0';
+			env.XDG_RUNTIME_DIR = process.env.XDG_RUNTIME_DIR || `/run/user/${process.getuid?.() ?? 1000}`;
+		}
+
+		const child = spawn(this.settings.gotimePath, args, {
+			env,
 			detached: true,
-			stdio: 'ignore'
+			stdio: 'ignore',
+			shell: isWin
 		});
 		
 		child.unref();
@@ -206,7 +242,7 @@ class GoTimeSettingTab extends PluginSettingTab {
 			.setName('Evidence base path')
 			.setDesc('Base path for portable video links (file://~/...). Set to your local video root directory.')
 			.addText(text => text
-				.setPlaceholder('/home/user/Videos')
+				.setPlaceholder(isWin ? 'D:\\Videos' : '/home/user/Videos')
 				.setValue(this.plugin.settings.evidencePaths)
 				.onChange(async (value) => {
 					this.plugin.settings.evidencePaths = value;

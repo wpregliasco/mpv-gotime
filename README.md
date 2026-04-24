@@ -2,12 +2,12 @@
 
 Open video files at specific timestamps directly from your Obsidian notes using [mpv](https://mpv.io/).
 
-> ⚠️ **Currently Linux-only.** Contributions for Windows and macOS support are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
+Works on **Linux**, **Windows**, and **macOS**.
 
 ## Features
 
 - Click `file://` links pointing to video files to open them in mpv
-- **Portable paths**: Supports `file://~/relative/path` links that resolve via `EVIDENCE_PATHS` — same notes work across machines
+- **Portable paths**: Supports `file://~/relative/path` links that resolve via evidence profile — same notes work across machines
 - Supports timestamp fragments (`#t=90.00`) to seek to a specific time
 - Supports rectangle coordinates (`&rect=x,y,w,h`) for region selection
 - If the video is already open, seeks instead of opening a new window
@@ -18,11 +18,8 @@ Open video files at specific timestamps directly from your Obsidian notes using 
 ## Prerequisites
 
 1. **[mpv](https://mpv.io/)** media player installed
-2. **[mpv-gotime](https://gitlab.com/obsidian_utils/gotime)** CLI tool installed:
-   ```bash
-   uv tool install /path/to/mpv_gotime
-   ```
-3. **Non-Flatpak Obsidian** — Flatpak sandboxing prevents launching GUI applications. Use the AppImage or native package instead.
+2. **[mpv-gotime](https://gitlab.com/obsidian_utils/gotime)** CLI tool installed
+3. **Non-Flatpak Obsidian** (Linux only) — Flatpak sandboxing prevents launching GUI applications. Use the AppImage or native package instead.
 
 ## Installation
 
@@ -30,9 +27,6 @@ Open video files at specific timestamps directly from your Obsidian notes using 
    ```bash
    cd /path/to/vault/.obsidian/plugins
    git clone https://github.com/wpregliasco/obsidian-gotime-plugin.git gotime-video
-   cd gotime-video
-   npm install
-   npm run build
    ```
 
 2. In Obsidian: **Settings → Community Plugins → Enable "GoTime Video"**
@@ -41,9 +35,7 @@ Open video files at specific timestamps directly from your Obsidian notes using 
 
 ```bash
 git clone https://github.com/wpregliasco/obsidian-gotime-plugin.git
-cd obsidian-gotime-plugin
-npm install && npm run build
-ln -s "$(pwd)" /path/to/vault/.obsidian/plugins/gotime-video
+ln -s "$(pwd)/obsidian-gotime-plugin" /path/to/vault/.obsidian/plugins/gotime-video
 ```
 
 ## Usage
@@ -55,7 +47,7 @@ Create timestamp links in your notes:
 [Video @ 00:01:30](file:///home/user/Videos/video.mp4#t=90.00)
 [My Clip](file:///home/user/Videos/clip.mov)
 
-# Portable paths (work across machines with EVIDENCE_PATHS configured)
+# Portable paths (work across machines with evidence profile configured)
 [Video @ 00:01:30](file://~/video.mp4#t=90.00)
 [My Clip @ 00:05:00](file://~/subdir/clip.mov#t=300.00&rect=100,200,50,50)
 ```
@@ -90,7 +82,7 @@ The [mpv-gotime](https://gitlab.com/obsidian_utils/obsidian-gotime) CLI provides
 | `Ctrl+I` | `[G296](file://~/video.mp4)` — Evidence ID link |
 | `Ctrl+L` | `[G296 @ HH:MM:SS](file://~/video.mp4#t=90.00)` — full with ID |
 
-When `EVIDENCE_PATHS` is set, links use portable `file://~/` format. Otherwise, absolute paths are used.
+When an evidence profile is configured, links use portable `file://~/` format. Otherwise, absolute paths are used.
 
 Paste the copied link into your Obsidian note.
 
@@ -123,19 +115,15 @@ Draw a rectangle overlay on the video to mark a region of interest. Coordinates 
 
 Portable paths allow the same Obsidian notes to work across different machines where video files live in different root directories.
 
-1. Ensure `EVIDENCE_PATHS` is set in your shell (typically configured by `evidence-setup`):
-   ```bash
-   echo $EVIDENCE_PATHS
-   # e.g. /home/user/Videos
-   ```
-2. Copy that value into the plugin setting: **Settings → GoTime Video → Evidence base path**
-3. Links using `file://~/relative/path` will resolve to `$EVIDENCE_PATHS/relative/path`
+1. Configure an evidence profile with `evidence-setup` — gotime reads the base path from `profiles.toml` automatically.
+2. Set the same base path in the plugin: **Settings → GoTime Video → Evidence base path** (used for resolving links inside Obsidian).
+3. Links using `file://~/relative/path` will resolve to the configured base path.
 
 Each machine only needs its own local path configured — the links in your notes stay the same.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) — help with **Windows** and **macOS** support is especially welcome!
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Related
 

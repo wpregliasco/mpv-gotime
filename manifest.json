@@ -1,9 +1,9 @@
 {
 	"id": "gotime-video",
-    "name": "GoTime Video (Linux version)",
+    "name": "GoTime Video",
     "author": "Willy Pregliasco",
-	"version": "1.0.1",
-	"minAppVersion": "1.0.1",
+	"version": "1.0.2",
+	"minAppVersion": "1.0.2",
 	"isDesktopOnly": true,
     "description": "Annotate videos with responsive md links to timestamps."
 }

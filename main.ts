@@ -186,8 +186,7 @@ export default class GoTimePlugin extends Plugin {
 		// Build environment — include X11 vars only on Linux
 		const env: Record<string, string> = {
 			...process.env as Record<string, string>,
-			PATH: envPATH,
-			EVIDENCE_PATHS: this.settings.evidencePaths || process.env.EVIDENCE_PATHS || ''
+			PATH: envPATH
 		};
 		if (!isWin) {
 			env.DISPLAY = process.env.DISPLAY || ':0';

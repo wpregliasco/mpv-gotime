@@ -1,5 +1,5 @@
-import { App, Plugin, PluginSettingTab, Setting, Notice } from 'obsidian';
-import { spawn } from 'child_process';
+import { App, Plugin, PluginSettingTab, Setting, Notice, TFile } from 'obsidian';
+import { spawn, spawnSync } from 'child_process';
 import * as path from 'path';
 
 const isWin = process.platform === 'win32';
@@ -31,6 +31,21 @@ export default class GoTimePlugin extends Plugin {
 			const href = link.getAttribute('href') || link.getAttribute('data-href');
 			if (!href) return;
 			console.log('GoTime click handler href:', href);
+
+			// Handle gotime:// links (intercept here so we can add --h1 etc.)
+			// Format: gotime://path?t=N&rect=x,y,w,h  (query, not fragment).
+			// We convert to file://path#t=N&rect=... so openWithGoTime parses it.
+			if (href.startsWith('gotime://')) {
+				evt.preventDefault();
+				evt.stopPropagation();
+				const rest = href.slice('gotime://'.length);
+				const qIdx = rest.indexOf('?');
+				const pathPart = qIdx >= 0 ? rest.slice(0, qIdx) : rest;
+				const query = qIdx >= 0 ? rest.slice(qIdx + 1) : '';
+				const fileHref = query ? `file://${pathPart}#${query}` : `file://${pathPart}`;
+				this.openWithGoTime(fileHref);
+				return;
+			}
 
 			// Check if it's a file:// link
 			if (href.startsWith('file://')) {
@@ -139,6 +154,85 @@ export default class GoTimePlugin extends Plugin {
 		});
 	}
 
+	// ----- Wall-clock overlay (h1) lookup -----
+	// Mirrors the semantics of MDReader.istag in obsidian-sync:
+	// - frontmatter.tags may be undefined, a string, or a string[]
+	// - returns true only if ALL required tags are present.
+	istag(frontmatter: any, required: string[]): boolean {
+		const raw = frontmatter?.tags;
+		let tags: string[];
+		if (typeof raw === 'string') {
+			tags = [raw];
+		} else if (Array.isArray(raw)) {
+			tags = raw.map(String);
+		} else {
+			tags = [];
+		}
+		return required.every(t => tags.includes(t));
+	}
+
+	// Resolve a video path to an absolute path the `fid` CLI can consume.
+	absoluteVideoPath(filePath: string): string {
+		if (filePath.startsWith('/~/')) {
+			const basePath = (this.settings.evidencePaths || '').replace(/[\/]+$/, '');
+			return path.join(basePath, filePath.slice(3));
+		}
+		return filePath;
+	}
+
+	// Call the `fid` CLI to resolve a video path to its Evidence ID (e.g. "V096").
+	// Returns null if `fid` is not installed, errors, or finds no match.
+	resolveFid(videoPath: string): string | null {
+		const abs = this.absoluteVideoPath(videoPath);
+		try {
+			const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+			const uvBin = path.join(homeDir, '.local', 'bin');
+			const pathSep = isWin ? ';' : ':';
+			const envPATH = `${uvBin}${pathSep}${process.env.PATH ?? ''}`;
+			const env = { ...process.env, PATH: envPATH } as NodeJS.ProcessEnv;
+			const res = spawnSync('fid', [abs], { env, encoding: 'utf8', timeout: 3000 });
+			if (res.status === 0) {
+				const id = (res.stdout || '').trim();
+				if (id) return id;
+			}
+		} catch (e) {
+			console.error('GoTime fid error:', e);
+		}
+		return null;
+	}
+
+	findEvidenceNote(videoPath: string): TFile | null {
+		const mdFiles = this.app.vault.getMarkdownFiles();
+		// 1) Resolve the Evidence ID via the `fid` CLI and look up <id>.md.
+		const id = this.resolveFid(videoPath);
+		if (id) {
+			const byId = mdFiles.find(f => f.basename === id);
+			if (byId) return byId;
+		}
+		// 2) Fallback: match by the video file's stem (legacy convention).
+		const base = path.basename(videoPath);
+		const stem = base.replace(/\.[^.]+$/, '');
+		return mdFiles.find(f => f.basename === stem) ?? null;
+	}
+
+	getH1ForVideo(videoPath: string): string | null {
+		console.log('GoTime h1 lookup for:', videoPath);
+		const id = this.resolveFid(videoPath);
+		console.log('GoTime fid →', id);
+		const file = this.findEvidenceNote(videoPath);
+		console.log('GoTime evidence note →', file?.path ?? null);
+		if (!file) return null;
+		const fm = this.app.metadataCache.getFileCache(file)?.frontmatter;
+		console.log('GoTime frontmatter →', fm);
+		if (!fm) return null;
+		const tagsOK = this.istag(fm, ['evidence', 'lock']);
+		console.log('GoTime tags evidence+lock →', tagsOK);
+		if (!tagsOK) return null;
+		const h1 = fm.sync_hora1;
+		console.log('GoTime sync_hora1 →', h1);
+		return h1 != null ? String(h1) : null;
+	}
+
 	openWithGoTime(href: string) {
 		// Parse file:///path/to/video.mp4#t=90.00&rect=x,y,w,h
 		// or portable: file://~/relative/path.mp4#t=90.00&rect=x,y,w,h
@@ -175,6 +269,8 @@ export default class GoTimePlugin extends Plugin {
 
 		const args = [filePath, timeStr];
 		if (rect) args.push('--rect', rect);
+		const h1 = this.getH1ForVideo(filePath);
+		if (h1) args.push('--h1', h1);
 		console.log('GoTime executing:', this.settings.gotimePath, args);
 
 		// Build platform-aware PATH with uv tool bin directory

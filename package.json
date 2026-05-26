@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-gotime-plugin",
-	"version": "2.0.0",
+	"version": "3.0.0",
 	"description": "Open video timestamp links with gotime command",
 	"main": "main.js",
 	"scripts": {

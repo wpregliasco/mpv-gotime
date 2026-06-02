@@ -171,11 +171,15 @@ export default class GoTimePlugin extends Plugin {
 		return required.every(t => tags.includes(t));
 	}
 
-	// Resolve a video path to an absolute path the `fid` CLI can consume.
-	absoluteVideoPath(filePath: string): string {
+	// Transform a video path into something `fid` can consume.
+	// For portable links (/~/relative/path) we strip the /~/ prefix and pass
+	// the relative path; `fid` will resolve it using the active evidence
+	// profile (so it works even if the plugin's evidencePaths setting is
+	// stale or points to an unmounted drive). Absolute paths are passed
+	// through unchanged.
+	pathForFid(filePath: string): string {
 		if (filePath.startsWith('/~/')) {
-			const basePath = (this.settings.evidencePaths || '').replace(/[\/]+$/, '');
-			return path.join(basePath, filePath.slice(3));
+			return filePath.slice(3); // "/~/VIDEOS/..." → "VIDEOS/..."
 		}
 		return filePath;
 	}
@@ -183,7 +187,7 @@ export default class GoTimePlugin extends Plugin {
 	// Call the `fid` CLI to resolve a video path to its Evidence ID (e.g. "V096").
 	// Returns null if `fid` is not installed, errors, or finds no match.
 	resolveFid(videoPath: string): string | null {
-		const abs = this.absoluteVideoPath(videoPath);
+		const abs = this.pathForFid(videoPath);
 		try {
 			const homeDir = process.env.HOME || process.env.USERPROFILE || '';
 			const uvBin = path.join(homeDir, '.local', 'bin');

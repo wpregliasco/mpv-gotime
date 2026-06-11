@@ -2,7 +2,7 @@
 	"id": "gotime-video",
     "name": "GoTime Video",
     "author": "Willy Pregliasco",
-	"version": "3.0.1",
+	"version": "4.0.0",
 	"minAppVersion": "1.0.0",
 	"isDesktopOnly": true,
     "description": "Annotate videos with responsive md links to timestamps."

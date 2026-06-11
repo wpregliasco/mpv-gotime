@@ -11,6 +11,7 @@ Works on **Linux**, **Windows**, and **macOS**.
 - Supports timestamp fragments (`#t=90.00`) to seek to a specific time
 - Supports rectangle coordinates (`&rect=x,y,w,h`) for region selection
 - **Wall-clock overlay**: When the linked video has an Evidence note tagged `evidence`+`lock` with a `sync_hora1` property, the plugin auto-injects `--h1` so mpv shows a running clock
+- **Per-clip overlay**: For clipped files (notes with `clip_*` properties, tagged `cliplock`), the plugin auto-injects `--clips` so mpv shows a per-clip `ID.N` label plus each clip's own running wall-clock
 - If the video is already open, seeks instead of opening a new window
 - Automatically detects video files: `.mp4`, `.mov`, `.mkv`, `.avi`, `.webm`, `.flv`, `.wmv`, `.m4v`
 - Opens at 0:00 if no timestamp is specified
@@ -120,6 +121,17 @@ If the video you click on has an Evidence note in the vault that satisfies all o
 3. The note's frontmatter contains a `sync_hora1` property in `HH:MM:SS[.sss]` format.
 
 When all three conditions are met, mpv renders a running clock in the bottom-right corner that advances as `sync_hora1 + playback time`. While the clock is on screen, **`Ctrl+H`** copies the current wall-clock time as plain text.
+
+### Clipped files (per-clip overlay)
+
+Some evidence files are cut into several clips (takes), each with its own wall-clock. These notes carry `clip_<n>_in`/`clip_<n>_out` (and, once synced, `clip_<n>_hora1`) and are tagged `cliplock` instead of `lock`.
+
+For such files the plugin injects `--clips` instead of `--h1`. mpv then shows, while playback is inside each clip's media range:
+
+- a top-left `ID.N` label for every clip (e.g. `G045.2`), and
+- a bottom-right running wall-clock for clips that have a `clip_<n>_hora1` (i.e. that were synced).
+
+Outside every clip range, no overlay is shown. The `--clips` string is built automatically from the note's frontmatter; see the [mpv-gotime](https://gitlab.com/obsidian_utils/gotime) README for the CLI format.
 
 Notes:
 

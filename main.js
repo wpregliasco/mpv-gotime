@@ -215,26 +215,84 @@ var GoTimePlugin = class extends import_obsidian.Plugin {
     const stem = base.replace(/\.[^.]+$/, "");
     return (_a = mdFiles.find((f) => f.basename === stem)) != null ? _a : null;
   }
-  getH1ForVideo(videoPath) {
+  // Parse a frontmatter time value (number of seconds, or an HH:MM:SS[.sss]
+  // string, or plain seconds as a string) into seconds. Mirrors the
+  // hms_to_secs logic used across the gotime/obsidian-sync toolchain.
+  hmsToSecs(val) {
+    if (val == null)
+      return null;
+    if (typeof val === "number")
+      return val;
+    const s = String(val).trim();
+    if (!s)
+      return null;
+    let sign = 1;
+    let body = s;
+    if (body.startsWith("-")) {
+      sign = -1;
+      body = body.slice(1);
+    }
+    let out = 0;
+    for (const part of body.split(":")) {
+      const n = parseFloat(part);
+      if (Number.isNaN(n))
+        return null;
+      out = out * 60 + n;
+    }
+    return sign * out;
+  }
+  // Collect clip overlay segments from a clipped evidence note's frontmatter.
+  // Each clip_<n>_in/out defines a media sub-range; clip_<n>_hora1 (present
+  // only for synced clips) provides the wall-clock start. Returns null when
+  // the note has no clip_* properties.
+  collectClips(fm) {
+    const numbers = /* @__PURE__ */ new Set();
+    for (const key of Object.keys(fm)) {
+      const m = /^clip_(\d+)_in$/.exec(key);
+      if (m)
+        numbers.add(parseInt(m[1], 10));
+    }
+    if (numbers.size === 0)
+      return null;
+    const chunks = [];
+    for (const n of Array.from(numbers).sort((a, b) => a - b)) {
+      const tin = this.hmsToSecs(fm[`clip_${n}_in`]);
+      const tout = this.hmsToSecs(fm[`clip_${n}_out`]);
+      if (tin == null || tout == null)
+        continue;
+      const h1 = this.hmsToSecs(fm[`clip_${n}_hora1`]);
+      chunks.push(`${n},${tin},${tout},${h1 != null ? h1 : ""}`);
+    }
+    return chunks.length ? chunks.join(";") : null;
+  }
+  // Build the overlay CLI args for a video. Clipped files (any clip_*
+  // property) get a per-clip --clips overlay; whole-file uniform files
+  // (evidence+lock with sync_hora1) get a single --h1 clock.
+  getOverlayArgs(videoPath) {
     var _a, _b;
-    console.log("GoTime h1 lookup for:", videoPath);
-    const id = this.resolveFid(videoPath);
-    console.log("GoTime fid \u2192", id);
+    console.log("GoTime overlay lookup for:", videoPath);
     const file = this.findEvidenceNote(videoPath);
     console.log("GoTime evidence note \u2192", (_a = file == null ? void 0 : file.path) != null ? _a : null);
     if (!file)
-      return null;
+      return [];
     const fm = (_b = this.app.metadataCache.getFileCache(file)) == null ? void 0 : _b.frontmatter;
     console.log("GoTime frontmatter \u2192", fm);
     if (!fm)
-      return null;
-    const tagsOK = this.istag(fm, ["evidence", "lock"]);
-    console.log("GoTime tags evidence+lock \u2192", tagsOK);
-    if (!tagsOK)
-      return null;
-    const h1 = fm.sync_hora1;
-    console.log("GoTime sync_hora1 \u2192", h1);
-    return h1 != null ? String(h1) : null;
+      return [];
+    if (!this.istag(fm, ["evidence"])) {
+      console.log("GoTime not an evidence note \u2192 no overlay");
+      return [];
+    }
+    const clips = this.collectClips(fm);
+    if (clips) {
+      console.log("GoTime clips \u2192", clips);
+      return ["--clips", clips];
+    }
+    if (this.istag(fm, ["lock"]) && fm.sync_hora1 != null) {
+      console.log("GoTime sync_hora1 \u2192", fm.sync_hora1);
+      return ["--h1", String(fm.sync_hora1)];
+    }
+    return [];
   }
   openWithGoTime(href) {
     var _a, _b, _c;
@@ -264,9 +322,7 @@ var GoTimePlugin = class extends import_obsidian.Plugin {
     const args = [filePath, timeStr];
     if (rect)
       args.push("--rect", rect);
-    const h1 = this.getH1ForVideo(filePath);
-    if (h1)
-      args.push("--h1", h1);
+    args.push(...this.getOverlayArgs(filePath));
     console.log("GoTime executing:", this.settings.gotimePath, args);
     const homeDir = process.env.HOME || process.env.USERPROFILE || "";
     const uvBin = path.join(homeDir, ".local", "bin");
